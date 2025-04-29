@@ -1,8 +1,36 @@
-## 🧠 Job Application Autofill Agent – Implementation Plan  
-**Team:** CodeRAGers  
-**Members:** Yin Hu, Guo Fan  
-**Framework:** Python + [AutoGen](https://github.com/microsoft/autogen)  
+## 🧠 Job Application Autofill Agent – Implementation Plan
+**Team:** CodeRAGers
+**Members:** Yin Hu, Guo Fan
+**Framework:** Python + [AutoGen](https://github.com/microsoft/autogen)
 **Optional Evaluation** [Arize Phoenix](https://github.com/Arize-ai/phoenix)
+
+```mermaid
+graph TD
+    User[User] --> |Job URL| API[API Layer]
+    API --> Queue[Job Queue]
+    Queue --> Orchestrator[Orchestrator Agent]
+    
+    subgraph Agents
+        Orchestrator --> Scraper[Scraper Agent]
+        Scraper --> |Form Fields| Mapping[Mapping Agent]
+        Mapping --> |Required Data| DB[DB Agent]
+        DB --> |User Data| Mapping
+        Mapping --> |Mapped Fields| Autofill[Autofill Agent]
+    end
+    
+    subgraph Error Handling
+        Scraper --> |Failure| ErrorHandler[Error Handler]
+        Mapping --> |Incomplete| UserProxy[User Proxy Agent]
+        Autofill --> |Failure| ErrorHandler
+    end
+    
+    subgraph Evaluation
+        Autofill --> Evaluator[Evaluator]
+        Evaluator --> |Metrics| Dashboard[Metrics Dashboard]
+    end
+    
+    Autofill --> |Filled Form URL| User
+```
 
 ---
 
