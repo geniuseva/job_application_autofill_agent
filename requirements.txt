@@ -1,0 +1,14 @@
+# Environment variable management
+python-dotenv
+
+# HTTP requests
+requests
+
+# HTML parsing
+beautifulsoup4
+
+# AutoGen framework
+autogen
+
+# OpenAI API client
+openai
