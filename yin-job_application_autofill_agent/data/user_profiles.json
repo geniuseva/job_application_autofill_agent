@@ -1,0 +1,90 @@
+{
+    "default_user": {
+      "personal": {
+        "first_name": "John",
+        "last_name": "Doe",
+        "email": "john.doe@example.com",
+        "phone": "+1 (555) 123-4567",
+        "address": "123 Main St",
+        "city": "Anytown",
+        "state": "CA",
+        "zip": "12345",
+        "country": "USA",
+        "birthdate": "1990-01-01",
+        "linkedin": "https://linkedin.com/in/johndoe",
+        "github": "https://github.com/johndoe",
+        "website": "https://johndoe.com"
+      },
+      "education": [
+        {
+          "institution": "University of Example",
+          "degree": "Bachelor of Science",
+          "field_of_study": "Computer Science",
+          "start_date": "2008-09-01",
+          "end_date": "2012-05-31",
+          "gpa": "3.8"
+        },
+        {
+          "institution": "Example Graduate School",
+          "degree": "Master of Science",
+          "field_of_study": "Artificial Intelligence",
+          "start_date": "2012-09-01",
+          "end_date": "2014-05-31",
+          "gpa": "3.9"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Tech Company Inc.",
+          "position": "Software Engineer",
+          "location": "San Francisco, CA",
+          "start_date": "2014-06-15",
+          "end_date": "2018-12-31",
+          "description": "Developed and maintained web applications using Python and JavaScript."
+        },
+        {
+          "company": "AI Innovations LLC",
+          "position": "Senior Developer",
+          "location": "Seattle, WA",
+          "start_date": "2019-01-15",
+          "end_date": "present",
+          "description": "Lead developer for machine learning applications."
+        }
+      ],
+      "skills": [
+        "Python", "JavaScript", "React", "Node.js", "Machine Learning",
+        "Data Analysis", "SQL", "MongoDB", "Git", "Docker"
+      ],
+      "languages": [
+        {"language": "English", "proficiency": "Native"},
+        {"language": "Spanish", "proficiency": "Intermediate"},
+        {"language": "French", "proficiency": "Basic"}
+      ],
+      "certifications": [
+        {
+          "name": "AWS Certified Developer",
+          "issuer": "Amazon Web Services",
+          "date": "2018-06-01",
+          "expires": "2021-06-01"
+        },
+        {
+          "name": "Google Cloud Professional",
+          "issuer": "Google",
+          "date": "2019-03-15",
+          "expires": "2022-03-15"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Data Visualization Tool",
+          "description": "A web-based data visualization tool using D3.js",
+          "url": "https://github.com/johndoe/data-viz"
+        },
+        {
+          "name": "Machine Learning Framework",
+          "description": "A framework for quickly deploying machine learning models",
+          "url": "https://github.com/johndoe/ml-framework"
+        }
+      ]
+    }
+  }
