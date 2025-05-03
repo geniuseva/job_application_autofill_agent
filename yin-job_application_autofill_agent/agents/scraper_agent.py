@@ -1,73 +1,127 @@
-from playwright.sync_api import sync_playwright
+import requests
 from bs4 import BeautifulSoup
 import json
 import logging
+import time
+from typing import Dict, List, Any, Optional
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, 
+logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def scrape_form(url):
+# Configuration
+MAX_RETRIES = 3     # Number of retries for transient errors
+RETRY_DELAY = 2     # Delay between retries in seconds
+REQUEST_TIMEOUT = 30  # Timeout for requests in seconds
+
+def scrape_form(url: str) -> Dict[str, Any]:
     """
-    Function to scrape form fields from a URL using BeautifulSoup and Playwright
+    Function to scrape form fields from a URL using requests and BeautifulSoup
+    
+    Args:
+        url: The URL of the form to scrape
+        
+    Returns:
+        Dict containing form fields, pagination info, and URL
+        
+    Raises:
+        Exception: If scraping fails after retries
     """
-    # Use Playwright to render JavaScript and get the fully rendered page
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        page.goto(url)
-        
-        # Wait for the page to load completely
-        page.wait_for_load_state("networkidle")
-        
-        # Get the HTML content
-        html_content = page.content()
-        
-        # Create a soup object
-        soup = BeautifulSoup(html_content, 'html.parser')
-        
-        # Find all form elements
-        forms = soup.find_all('form')
-        
-        # Initialize a list to store form field data
-        form_fields = []
-        
-        # If no forms are found, try to find input elements directly
-        if not forms:
-            inputs = soup.find_all(['input', 'select', 'textarea'])
-            for input_field in inputs:
-                field_data = extract_field_data(input_field)
-                if field_data:
-                    form_fields.append(field_data)
-        else:
-            # Extract field data from each form
-            for form in forms:
-                form_id = form.get('id', '')
-                form_name = form.get('name', '')
-                
-                # Find all input elements within the form
-                inputs = form.find_all(['input', 'select', 'textarea'])
-                
+    retries = 0
+    last_error = None
+    
+    while retries <= MAX_RETRIES:
+        try:
+            logger.info(f"Scraping URL: {url} (Attempt {retries + 1}/{MAX_RETRIES + 1})")
+            
+            # Send a GET request to the URL with timeout
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+            response.raise_for_status()  # Raise an exception for HTTP errors
+            
+            # Parse the HTML content using BeautifulSoup
+            logger.info("Parsing HTML content")
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Find all form elements
+            forms = soup.find_all('form')
+            logger.info(f"Found {len(forms)} form elements")
+            
+            # Initialize a list to store form field data
+            form_fields = []
+            
+            # If no forms are found, try to find input elements directly
+            if not forms:
+                logger.info("No form elements found, looking for input elements directly")
+                inputs = soup.find_all(['input', 'select', 'textarea'])
                 for input_field in inputs:
                     field_data = extract_field_data(input_field)
                     if field_data:
-                        field_data['form_id'] = form_id
-                        field_data['form_name'] = form_name
                         form_fields.append(field_data)
+            else:
+                # Extract field data from each form
+                for form in forms:
+                    form_id = form.get('id', '')
+                    form_name = form.get('name', '')
+                    
+                    # Find all input elements within the form
+                    inputs = form.find_all(['input', 'select', 'textarea'])
+                    
+                    for input_field in inputs:
+                        field_data = extract_field_data(input_field)
+                        if field_data:
+                            field_data['form_id'] = form_id
+                            field_data['form_name'] = form_name
+                            form_fields.append(field_data)
+            
+            # Check if there are pagination elements
+            pagination = check_for_pagination(soup)
+            
+            # Return the scraped data
+            result = {
+                "form_fields": form_fields,
+                "pagination": pagination,
+                "url": url
+            }
+            
+            logger.info(f"Successfully scraped {len(form_fields)} form fields")
+            return result
+                
+        except requests.exceptions.Timeout as e:
+            last_error = e
+            logger.warning(f"Timeout error on attempt {retries + 1}: {str(e)}")
+            retries += 1
+            if retries <= MAX_RETRIES:
+                logger.info(f"Retrying in {RETRY_DELAY} seconds...")
+                time.sleep(RETRY_DELAY)
+            else:
+                logger.error(f"Failed after {MAX_RETRIES + 1} attempts due to timeout")
+                raise Exception(f"Timeout error after {MAX_RETRIES + 1} attempts: {str(e)}")
         
-        # Check if there are pagination elements
-        pagination = check_for_pagination(soup)
-        
-        # Close browser
-        browser.close()
-        
-        # Return the scraped data
-        return {
-            "form_fields": form_fields,
-            "pagination": pagination,
-            "url": url
-        }
+        except requests.exceptions.RequestException as e:
+            last_error = e
+            logger.warning(f"Request error on attempt {retries + 1}: {str(e)}")
+            retries += 1
+            if retries <= MAX_RETRIES:
+                logger.info(f"Retrying in {RETRY_DELAY} seconds...")
+                time.sleep(RETRY_DELAY)
+            else:
+                logger.error(f"Failed after {MAX_RETRIES + 1} attempts due to request error")
+                raise Exception(f"Request error after {MAX_RETRIES + 1} attempts: {str(e)}")
+                
+        except Exception as e:
+            last_error = e
+            logger.error(f"Error on attempt {retries + 1}: {str(e)}", exc_info=True)
+            retries += 1
+            if retries <= MAX_RETRIES:
+                logger.info(f"Retrying in {RETRY_DELAY} seconds...")
+                time.sleep(RETRY_DELAY)
+            else:
+                logger.error(f"Failed after {MAX_RETRIES + 1} attempts")
+                raise
 
 def extract_field_data(input_field):
     """
@@ -154,11 +208,22 @@ def check_for_pagination(soup):
     
     return False
 
-# Example function to be used by the ScrapeAgent
-def perform_scraping(url):
-    """Function to be called by the scraping agent"""
+# Function to be used by the ScrapeAgent
+def perform_scraping(url: str) -> str:
+    """
+    Function to be called by the scraping agent
+    
+    Args:
+        url: The URL to scrape
+        
+    Returns:
+        JSON string of scraped data or error message
+    """
     try:
+        logger.info(f"Starting scraping process for URL: {url}")
         scraped_data = scrape_form(url)
+        logger.info(f"Successfully scraped form with {len(scraped_data.get('form_fields', []))} fields")
         return json.dumps(scraped_data, indent=2)
     except Exception as e:
+        logger.error(f"Error scraping the form: {str(e)}", exc_info=True)
         return f"Error scraping the form: {str(e)}"
