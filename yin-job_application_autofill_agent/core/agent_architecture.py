@@ -14,7 +14,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 # Configuration for the agents
 config_list = [
     {
-        "model": "gpt-4",
+        "model": "gpt-4-turbo-preview",  # Using gpt-4-turbo which has a 128k token context window
         "api_key": api_key
     }
 ]
@@ -267,16 +267,23 @@ autofill_config = {
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "mapping_data": {
-                            "type": "object",
-                            "description": "The mapping between form fields and user data"
-                        },
                         "form_url": {
                             "type": "string",
                             "description": "The URL of the form to fill"
+                        },
+                        "mapping_data": {
+                            "type": "object",
+                            "description": "The mapping between form fields and user data (optional)"
+                        },
+                        "mapping": {
+                            "type": "array",
+                            "description": "Alternative format for mapping data (optional)",
+                            "items": {
+                                "type": "object"
+                            }
                         }
                     },
-                    "required": ["mapping_data", "form_url"]
+                    "required": ["form_url"]
                 }
             }
         ]
@@ -290,7 +297,12 @@ autofill_config = {
     5. Navigate through multi-page forms when necessary
     6. Return the URL of the final page for user review
     
-    When asked to fill a form, use your fill_form function with the mapping data and form URL as parameters.
+    When asked to fill a form, use your fill_form function with the form URL as the required parameter.
+    You can also provide mapping data in one of two formats:
+    - mapping_data: A structured object containing field mappings and user data
+    - mapping: An array of field mapping objects with direct values
+    
+    If no mapping data is provided, you'll need to request it before proceeding.
     Be careful to handle errors gracefully."""
 }
 
@@ -327,10 +339,21 @@ The MapperAgent serves as a coordinator between these specialized agents and pro
 - extract_key_information(scraped_data): Prepares data for database queries
 - generate_fill_instructions(scraped_data, user_data): Prepares instructions for form filling
 
+IMPORTANT: When calling the AutofillAgent's fill_form function, you MUST provide the mapping data along with the form URL. The function requires:
+- form_url: The URL of the form to fill (required)
+- mapping_data: The mapping between form fields and user data (optional but recommended)
+  OR
+- mapping: An alternative format for mapping data as an array of field objects (optional)
+
+If you don't provide mapping data, the AutofillAgent will return an error.
+
 Always keep track of which step in the process you're on, and explicitly name which agent you're addressing in each message. If any agent encounters an error, help resolve it by suggesting appropriate actions.
 
 Use the following format when addressing agents:
 "@ScrapeAgent: Please extract the form fields from [URL]"
+
+When addressing the AutofillAgent, use:
+"@AutofillAgent: Please fill the form at [URL] with the following mapping data: [JSON mapping data]"
 """
 }
 
@@ -390,10 +413,12 @@ def create_agents():
             return db_agent_handler("get_profile", {"user_id": "default_user"})
         elif action == "get_schema":
             return db_agent_handler("get_profile_schema", {"user_id": "default_user"})
-        elif action == "get_fields" and fields:
-            return db_agent_handler("get_fields", {"user_id": "default_user", "fields": fields})
+        elif action == "get_fields":
+            # Ensure fields is a list, even if empty
+            field_list = fields if fields else []
+            return db_agent_handler("get_fields", {"user_id": "default_user", "fields": field_list})
         else:
-            return "Please specify a valid database action: get_profile, get_schema, or get_fields with field names."
+            return "Please specify a valid database action: get_profile, get_schema, or get_fields."
     
     db_agent.register_function(
         function_map={

@@ -212,28 +212,95 @@ class FormAutofiller:
         except Exception as e:
             results['error'] = str(e)
             logger.error(f"Error in autofill_form: {str(e)}")
-        finally:
-            self.close_browser()
+        # finally:
+        #     self.close_browser()
         
         return results
 
 # Function to be used by the AutofillAgent
-def perform_autofill(url, mapping_data, user_data):
+def perform_autofill(form_url, mapping_data=None, mapping=None):
     """Function to be called by the autofill agent"""
     try:
-        # Parse inputs if they are strings
-        if isinstance(mapping_data, str):
-            mapping_data = json.loads(mapping_data)
-        
-        if isinstance(user_data, str):
-            user_data = json.loads(user_data)
-        
-        # Extract field mappings
-        field_mappings = mapping_data.get('mapping_result', {}).get('field_mapping', {})
+        # Check if form_url is provided
+        if not form_url:
+            return "Error: No form URL provided. Please specify the URL of the form to fill."
+            
+        # Handle different parameter formats
+        # If mapping_data is provided, use it
+        if mapping_data:
+            if isinstance(mapping_data, str):
+                try:
+                    mapping_data = json.loads(mapping_data)
+                except json.JSONDecodeError:
+                    return "Error: Invalid JSON format in mapping_data parameter"
+            
+            # Extract field mappings
+            field_mappings = mapping_data.get('mapping_result', {}).get('field_mapping', {})
+            user_data = mapping_data.get('user_data', {})
+            
+            # Check if field_mappings is empty
+            if not field_mappings:
+                field_mappings = mapping_data.get('field_mapping', {})
+                
+                # Check if there's a 'field_mappings' key with a list of field mappings
+                if not field_mappings and mapping_data.get('field_mappings') and isinstance(mapping_data.get('field_mappings'), list):
+                    # Convert the list of mappings to the format expected by autofill_form
+                    mappings_list = mapping_data.get('field_mappings')
+                    field_mappings = {}
+                    user_data = {}
+                    for item in mappings_list:
+                        field_name = item.get('field_name')
+                        if field_name:
+                            field_mappings[field_name] = {
+                                'user_field': field_name,
+                                'field_type': item.get('type', 'text')
+                            }
+                            user_data[field_name] = item.get('value', '')
+                
+                # Check if there's a 'fields' key with a list of field mappings (used in main.py)
+                elif not field_mappings and mapping_data.get('fields') and isinstance(mapping_data.get('fields'), list):
+                    # Convert the list of fields to the format expected by autofill_form
+                    fields_list = mapping_data.get('fields')
+                    field_mappings = {}
+                    user_data = {}
+                    for item in fields_list:
+                        field_name = item.get('name')  # Note: using 'name' instead of 'field_name'
+                        if field_name:
+                            field_mappings[field_name] = {
+                                'user_field': field_name,
+                                'field_type': item.get('type', 'text')
+                            }
+                            user_data[field_name] = item.get('value', '')
+                
+                elif not field_mappings and isinstance(mapping_data, dict):
+                    # Try to use the mapping_data directly as field_mappings
+                    field_mappings = mapping_data
+                    user_data = mapping_data
+                    
+        # If mapping is provided directly, use it
+        elif mapping:
+            # Convert the mapping list to a field_mappings dictionary
+            field_mappings = {}
+            for item in mapping:
+                field_id = item.get('field_id') or item.get('field_name')
+                if field_id:
+                    field_mappings[field_id] = {
+                        'user_field': 'custom',
+                        'field_type': item.get('field_type', 'text')
+                    }
+            
+            # Create a flat user_data dictionary from the mapping values
+            user_data = {}
+            for item in mapping:
+                field_id = item.get('field_id') or item.get('field_name')
+                if field_id:
+                    user_data[field_id] = item.get('value', '')
+        else:
+            return "Error: No mapping data provided. Please provide either 'mapping_data' or 'mapping' parameter with field mapping information."
         
         # Perform the form autofill
         autofiller = FormAutofiller()
-        results = autofiller.autofill_form(url, field_mappings, user_data)
+        results = autofiller.autofill_form(form_url, field_mappings, user_data)
         
         # Add metrics for evaluation
         results['metrics'] = {
@@ -244,4 +311,7 @@ def perform_autofill(url, mapping_data, user_data):
         
         return json.dumps(results, indent=2)
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"Error in perform_autofill: {str(e)}\n{error_details}")
         return f"Error performing form autofill: {str(e)}"

@@ -84,7 +84,25 @@ class UserDatabase:
         
         result = {}
         for field in fields:
-            if field in profile:
+            # Handle nested fields with dot notation (e.g., "personal.first_name")
+            if "." in field:
+                parts = field.split(".")
+                current = profile
+                found = True
+                
+                # Navigate through the nested structure
+                for part in parts[:-1]:
+                    if part in current and isinstance(current[part], dict):
+                        current = current[part]
+                    else:
+                        found = False
+                        break
+                
+                # Get the final field value if found
+                if found and parts[-1] in current:
+                    result[field] = current[parts[-1]]
+            # Handle direct fields
+            elif field in profile:
                 result[field] = profile[field]
         
         return result

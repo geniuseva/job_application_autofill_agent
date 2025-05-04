@@ -55,7 +55,7 @@ def orchestrator_workflow(url=None):
     # Configuration for the agents
     config_list = [
         {
-            "model": "gpt-4",
+            "model": "gpt-4-turbo-preview",  # Using gpt-4-turbo which has a 128k token context window
             "api_key": os.environ.get("OPENAI_API_KEY")
         }
     ]
