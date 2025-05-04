@@ -1,11 +1,17 @@
 import json
 import os
+import logging
 from datetime import datetime
+
+# Set up logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 class UserDatabase:
     """Simple user database for storing and retrieving user profile information"""
     
-    def __init__(self, db_file="user_profiles.json"):
+    def __init__(self, db_file="data/user_profiles.json"):
         """Initialize the database with a file path"""
         self.db_file = db_file
         self.profiles = {}
@@ -13,15 +19,19 @@ class UserDatabase:
     
     def load_profiles(self):
         """Load user profiles from the database file"""
+        logger.info(f"Loading profiles from {self.db_file}")
         if os.path.exists(self.db_file):
             try:
                 with open(self.db_file, 'r') as f:
                     self.profiles = json.load(f)
+                logger.info(f"Successfully loaded profiles: {list(self.profiles.keys())}")
             except json.JSONDecodeError:
                 # If file exists but is invalid JSON, start with empty dict
+                logger.error(f"Error parsing JSON from {self.db_file}")
                 self.profiles = {}
         else:
             # If file doesn't exist, start with empty dict
+            logger.warning(f"Database file {self.db_file} not found")
             self.profiles = {}
     
     def save_profiles(self):
@@ -177,27 +187,35 @@ class UserDatabase:
 # Function to be used by the DatabaseAgent
 def db_agent_handler(action, params=None):
     """Handle database operations for the DB Agent"""
+    logger.info(f"DB Agent handling action: {action} with params: {params}")
     db = UserDatabase()
     
     # If the database is empty, create a default profile
     if not db.profiles:
+        logger.info("No profiles found, creating default profile")
         db.create_default_profile()
     
     if action == "get_profile":
         user_id = params.get("user_id", "default_user")
+        logger.info(f"Getting profile for user ID: {user_id}")
         profile = db.get_profile(user_id)
         if profile:
+            logger.info(f"Successfully retrieved profile for {user_id}")
             return json.dumps(profile, indent=2)
         else:
+            logger.warning(f"Profile for user ID '{user_id}' not found")
             return f"Profile for user ID '{user_id}' not found"
     
     elif action == "get_fields":
         user_id = params.get("user_id", "default_user")
         fields = params.get("fields", [])
+        logger.info(f"Getting fields {fields} for user ID: {user_id}")
         result = db.get_profile_fields(user_id, fields)
         if result:
+            logger.info(f"Successfully retrieved fields for {user_id}")
             return json.dumps(result, indent=2)
         else:
+            logger.warning(f"Could not retrieve fields for user ID '{user_id}'")
             return f"Could not retrieve fields for user ID '{user_id}'"
     
     elif action == "get_profile_schema":
