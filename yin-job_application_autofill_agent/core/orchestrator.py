@@ -4,11 +4,12 @@ import time
 import os
 import re
 import logging
+from typing import Dict, List, Any, Tuple, Optional, Union
 
 # Import agent configurations and agent implementations
 from core.agent_architecture import create_agents, config_list
 from agents.scraper_agent import perform_scraping
-from agents.mapper_agent import perform_mapping
+from agents.mapper_agent import extract_form_fields, generate_autofill_instructions, perform_mapping
 from agents.db_agent import db_agent_handler
 from agents.autofill_agent import perform_autofill
 
@@ -26,10 +27,30 @@ def orchestrator_workflow(url=None):
     # Extract individual agents
     user_proxy = agents["user_proxy"]
     manager = agents["manager"]
+    scraper = agents["scraper"]
+    mapper = agents["mapper"]
+    db_agent = agents["db_agent"]
+    autofill_agent = agents["autofill_agent"]
+    form_analyzer = agents["form_analyzer"]
+    query_generator = agents["query_generator"]
+    field_mapper = agents["field_mapper"]
+    
+    logger.info("All agents created and initialized")
     
     # Initialize metrics collection
     token_logs = []
     time_logs = []
+    
+    # Track workflow state
+    workflow_state = {
+        "url": url,
+        "scraped_data": None,
+        "form_analysis": None,
+        "db_query": None,
+        "user_data": None,
+        "field_mapping": None,
+        "autofill_result": None
+    }
 
     # Configuration for the agents
     config_list = [
@@ -80,7 +101,57 @@ def orchestrator_workflow(url=None):
                     except:
                         pass
     
-    return autofill_result, token_logs, time_logs
+    # Also extract workflow state information from the chat history
+    for message in chat_history:
+        # Extract scraped data
+        if message.get("function_call") and message.get("function_call").get("name") == "scrape_url":
+            if message.get("function_call").get("output"):
+                try:
+                    workflow_state["scraped_data"] = json.loads(message["function_call"]["output"])
+                except:
+                    pass
+        
+        # Extract form analysis (from FormAnalyzerAgent messages)
+        if message["role"] == "assistant" and message.get("name") == "FormAnalyzerAgent":
+            try:
+                # Try to extract JSON from the message content
+                form_analysis = extract_json_from_message(message.get("content", ""))
+                if form_analysis:
+                    workflow_state["form_analysis"] = form_analysis
+            except:
+                pass
+        
+        # Extract DB query (from QueryGeneratorAgent messages)
+        if message["role"] == "assistant" and message.get("name") == "QueryGeneratorAgent":
+            try:
+                # Try to extract JSON from the message content
+                db_query = extract_json_from_message(message.get("content", ""))
+                if db_query:
+                    workflow_state["db_query"] = db_query
+            except:
+                pass
+        
+        # Extract user data
+        if message.get("function_call") and message.get("function_call").get("name") == "query_database":
+            if message.get("function_call").get("output"):
+                try:
+                    workflow_state["user_data"] = json.loads(message["function_call"]["output"])
+                except:
+                    pass
+        
+        # Extract field mapping (from FieldMapperAgent messages)
+        if message["role"] == "assistant" and message.get("name") == "FieldMapperAgent":
+            try:
+                # Try to extract JSON from the message content
+                field_mapping = extract_json_from_message(message.get("content", ""))
+                if field_mapping:
+                    workflow_state["field_mapping"] = field_mapping
+            except:
+                pass
+    
+    workflow_state["autofill_result"] = autofill_result
+    
+    return autofill_result, token_logs, time_logs, workflow_state
 
 # Helper functions
 def extract_url_from_message(message):
@@ -158,7 +229,7 @@ def flatten_user_data(user_data):
 # Main execution function
 def run_orchestrator(url=None):
     """Run the orchestrator workflow with a provided URL"""
-    result, token_logs, time_logs = orchestrator_workflow(url)
+    result, token_logs, time_logs, workflow_state = orchestrator_workflow(url)
     
     # Print results and metrics
     logger.info("Job Application Autofill completed!")
@@ -170,6 +241,16 @@ def run_orchestrator(url=None):
         
         if result.get('metrics'):
             logger.info(f"Fill rate: {result['metrics'].get('fill_rate', 0):.2f}%")
+    
+    # Log workflow state
+    logger.info("Workflow State:")
+    logger.info(f"  URL: {workflow_state['url']}")
+    logger.info(f"  Scraped Data: {'Obtained' if workflow_state['scraped_data'] else 'Not obtained'}")
+    logger.info(f"  Form Analysis: {'Completed' if workflow_state['form_analysis'] else 'Not completed'}")
+    logger.info(f"  DB Query: {'Generated' if workflow_state['db_query'] else 'Not generated'}")
+    logger.info(f"  User Data: {'Retrieved' if workflow_state['user_data'] else 'Not retrieved'}")
+    logger.info(f"  Field Mapping: {'Generated' if workflow_state['field_mapping'] else 'Not generated'}")
+    logger.info(f"  Autofill Result: {'Obtained' if workflow_state['autofill_result'] else 'Not obtained'}")
     
     # Log time metrics
     total_time = sum(log["duration"] for log in time_logs)
