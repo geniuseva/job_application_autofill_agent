@@ -218,7 +218,7 @@ class FormAutofiller:
         return results
 
 # Function to be used by the AutofillAgent
-def perform_autofill(url, mapping_data, user_data):
+def perform_autofill(form_url, mapping_data, user_data):
     """Function to be called by the autofill agent"""
     try:
         # Parse inputs if they are strings

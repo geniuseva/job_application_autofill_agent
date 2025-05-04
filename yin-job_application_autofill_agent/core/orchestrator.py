@@ -55,7 +55,7 @@ def orchestrator_workflow(url=None):
     # Configuration for the agents
     config_list = [
         {
-            "model": "gpt-4",
+            "model": "gpt-4-turbo-preview",
             "api_key": os.environ.get("OPENAI_API_KEY")
         }
     ]

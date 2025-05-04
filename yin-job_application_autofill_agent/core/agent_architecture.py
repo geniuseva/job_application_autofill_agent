@@ -14,7 +14,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 # Configuration for the agents
 config_list = [
     {
-        "model": "gpt-4",
+        "model": "gpt-4-turbo-preview",
         "api_key": api_key
     }
 ]
