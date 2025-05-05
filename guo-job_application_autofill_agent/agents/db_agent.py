@@ -3,6 +3,9 @@ import os
 import logging
 from datetime import datetime
 
+# Import Phoenix tracing
+from core.tracing import tracer
+
 # Set up logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -203,6 +206,7 @@ class UserDatabase:
         return default_user_id, default_profile
 
 # Function to be used by the DatabaseAgent
+@tracer.chain
 def db_agent_handler(action, params=None):
     """Handle database operations for the DB Agent"""
     logger.info(f"DB Agent handling action: {action} with params: {params}")

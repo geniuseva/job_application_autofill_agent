@@ -7,6 +7,9 @@ import random
 import urllib.parse
 from urllib.parse import urlparse, parse_qs, urlencode
 
+# Import Phoenix tracing
+from core.tracing import tracer
+
 # Global variables to store browser instances
 _playwright = None
 _browser = None
@@ -174,14 +177,14 @@ class FormAutofiller:
                         self.page.type(selector, char, delay=random.uniform(50, 150))
                         
                     logger.info(f"✓ Filled text field '{field_name}' with value '{value}'")
-                    filled_fields.append(field_name)
+                    filled_fields.append(selector)
                     
                 elif fill_method == "select_option":
                     selected_value = field.get("selected_value", "")
                     logger.debug(f"  - Selected value: {selected_value}")
                     self.page.select_option(selector, value=selected_value)
                     logger.info(f"✓ Selected option '{selected_value}' in field '{field_name}'")
-                    filled_fields.append(field_name)
+                    filled_fields.append(selector)
                     
                 elif fill_method == "check":
                     checked = field.get("checked", False)
@@ -191,7 +194,7 @@ class FormAutofiller:
                     else:
                         self.page.uncheck(selector)
                     logger.info(f"✓ Set checkbox '{field_name}' to {checked}")
-                    filled_fields.append(field_name)
+                    filled_fields.append(selector)
                     
                 elif fill_method == "set_input_files":
                     file_paths = field.get("file_paths", [])
@@ -199,14 +202,14 @@ class FormAutofiller:
                         logger.debug(f"  - File paths: {file_paths}")
                         self.page.set_input_files(selector, file_paths)
                         logger.info(f"✓ Set file input '{field_name}' with files")
-                        filled_fields.append(field_name)
+                        filled_fields.append(selector)
                     else:
                         logger.warning(f"No file paths provided for file input '{field_name}'")
-                        not_filled_fields.append(field_name)
+                        not_filled_fields.append(selector)
                 
                 else:
                     logger.warning(f"Unknown fill method '{fill_method}' for field '{field_name}'")
-                    not_filled_fields.append(field_name)
+                    not_filled_fields.append(selector)
                 
                 # Verify the field was filled correctly (for text fields)
                 if fill_method == "fill":
@@ -223,7 +226,7 @@ class FormAutofiller:
                 
             except Exception as e:
                 logger.error(f"Error filling field '{field_name}': {str(e)}")
-                not_filled_fields.append(field_name)
+                not_filled_fields.append(selector)
         
         return {
             'filled_fields': filled_fields,
@@ -356,6 +359,7 @@ class FormAutofiller:
         return results
 
 # Function to be used by the AutofillAgent
+@tracer.chain
 def perform_autofill(form_data):
     """
     Function to be called by the autofill agent

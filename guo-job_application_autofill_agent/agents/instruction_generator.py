@@ -9,11 +9,15 @@ import json
 import logging
 from typing import Dict, List, Any, Union
 
+# Import Phoenix tracing
+from core.tracing import tracer
+
 # Set up logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+@tracer.chain
 def generate_autofill_instructions(matched_fields_data: Union[Dict[str, Any], str]) -> str:
     """
     Generate autofill instructions from matched fields data.

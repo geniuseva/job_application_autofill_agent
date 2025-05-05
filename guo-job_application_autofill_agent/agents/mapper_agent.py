@@ -2,11 +2,15 @@ import json
 import logging
 from typing import Dict, List, Any, Optional, Union
 
+# Import Phoenix tracing
+from core.tracing import tracer
+
 # Set up logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+@tracer.chain
 def extract_form_fields(scraped_data: Union[Dict[str, Any], str]) -> str:
     """
     Action 1: Extract key information from scraped form fields for DB queries
@@ -43,6 +47,7 @@ def extract_form_fields(scraped_data: Union[Dict[str, Any], str]) -> str:
         logger.error(f"Error extracting key information: {str(e)}", exc_info=True)
         return f"Error extracting key information: {str(e)}"
 
+@tracer.chain
 def generate_autofill_instructions(scraped_data: Union[Dict[str, Any], str], user_data: Union[Dict[str, Any], str]) -> str:
     """
     Action 2: Generate fill instructions for the autofill agent
@@ -193,6 +198,7 @@ def flatten_user_data(user_data: Dict[str, Any]) -> Dict[str, Any]:
     return flat_data
 
 # Legacy function for backward compatibility
+@tracer.chain
 def perform_mapping(scraped_data: Union[Dict[str, Any], str], user_data_schema: Dict[str, Any] = None) -> str:
     """
     Legacy function to be called by the mapping agent

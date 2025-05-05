@@ -9,6 +9,9 @@ from agents.db_agent import db_agent_handler
 from agents.autofill_agent import perform_autofill
 from agents.instruction_generator import generate_autofill_instructions
 
+# Import Phoenix tracing
+from core.tracing import tracer
+
 # Retrieve the API key from the environment variables
 api_key = os.getenv("OPENAI_API_KEY")
 # Configuration for the agents
@@ -247,6 +250,7 @@ user_proxy_config = {
 }  
 
 # Function to create and setup all agents
+@tracer.chain
 def create_agents():
     """Create all the agents needed for the job application autofill system"""
     # Create the agents
@@ -273,6 +277,7 @@ def create_agents():
     )
     
     # Create a wrapper for db_agent_handler to handle different actions
+    @tracer.chain
     def db_function(action="get_profile", fields=None):
         if action == "get_profile":
             return db_agent_handler("get_profile", {"user_id": "default_user"})

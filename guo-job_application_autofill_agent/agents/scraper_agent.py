@@ -5,6 +5,9 @@ import logging
 import time
 from typing import Dict, List, Any, Optional
 
+# Import Phoenix tracing
+from core.tracing import tracer
+
 # Set up logging
 logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -15,6 +18,7 @@ MAX_RETRIES = 3     # Number of retries for transient errors
 RETRY_DELAY = 2     # Delay between retries in seconds
 REQUEST_TIMEOUT = 30  # Timeout for requests in seconds
 
+@tracer.chain
 def scrape_form(url: str) -> Dict[str, Any]:
     """
     Function to scrape form fields from a URL using requests and BeautifulSoup
@@ -209,6 +213,7 @@ def check_for_pagination(soup):
     return False
 
 # Function to be used by the ScrapeAgent
+@tracer.chain
 def perform_scraping(url: str) -> str:
     """
     Function to be called by the scraping agent

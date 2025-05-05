@@ -14,11 +14,15 @@ from agents.db_agent import db_agent_handler
 from agents.autofill_agent import perform_autofill
 from agents.instruction_generator import generate_autofill_instructions
 
+# Import Phoenix tracing
+from core.tracing import tracer
+
 # Set up logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+@tracer.chain
 def orchestrator_workflow(url=None):
     """Main function to orchestrate the job application autofill workflow"""
     
@@ -230,6 +234,7 @@ def flatten_user_data(user_data):
     return flat_data
 
 # Main execution function
+@tracer.chain
 def run_orchestrator(url=None):
     """Run the orchestrator workflow with a provided URL"""
     result, token_logs, time_logs, workflow_state = orchestrator_workflow(url)
