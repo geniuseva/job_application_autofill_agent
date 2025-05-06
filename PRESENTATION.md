@@ -97,11 +97,13 @@ The project includes an evaluation module using the `Phoenix` framework, which t
 ## 6. (Optional) Implementations Comparison &&  Detailed Agent Architecture
 
 | Feature | job_application_autofill_agent_version_1(less_agent) | job_application_autofill_agent_version_2(more_agents) |
-|---------|-------------------------------------|-------------------|-----------------------------------|
+|---------|-------------------------------------|-----------------------------------|
 | **Core Functionality** | Basic form scraping and autofill | Same |
-| **Evaluation** | Phoenix tracing | Same |
 | **Browser Control** | Playwright | Same |
-
+| **Evaluation** | Phoenix tracing | Same |
+| **Agent Amount** | 7 agents | 10 agents |
+| **Time** | Shorter | Longer |
+| **Iteration Amount** | Less | More |
 
 The system consists of several specialized agents, each responsible for a specific part of the workflow:
 
@@ -156,7 +158,7 @@ The system consists of several specialized agents, each responsible for a specif
   - Present results to the user
   - Manage the human feedback loop (in human-in-the-loop version)
 
-## 7. Challenges & Discussions (Guo)
+## 7. Challenges & Discussions
 
 1. LLM-Based Field Mapping vs. Hardcoded Patterns
 LLMs can replace brittle rule-based systems with more flexible, adaptive solutions that can handle edge cases and novel inputs more effectively.
