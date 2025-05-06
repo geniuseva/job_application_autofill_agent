@@ -2,13 +2,12 @@
 
 ## 1. Introduction (Yin)
 
-The Job Application Autofill Agent is an advanced system designed to automate the job application process by intelligently filling out online application forms. It leverages AI-powered agents to extract form fields, map user data to appropriate fields, and automatically complete applications, significantly reducing the time and effort required by job seekers.
+The Job Application Autofill Agent is an multi-agent system designed to automate the job application process of filling out online application forms. The system will take users input about filling a job application form(url) and then efficiently handle the following tasks: receiving application links, scraping form data from the web, identifying required fields, query user database to get user data, mapping form fields to user data, auto filling forms, and lastly sending filled url back to user for review and submission. We willl also evaluate this multi-agent system based on 3 scopes: accuracy, tokens, and time using Phoenix.
 
 ### Project Purpose
 
 Job applications often require repetitive data entry across multiple platforms, creating a tedious and time-consuming process for job seekers. This project aims to:
 
-- **Automate repetitive data entry** across multiple job application platforms
 - **Reduce application time** from minutes to seconds per application
 - **Increase application throughput** by enabling users to apply to more positions
 - **Maintain accuracy** through intelligent field mapping and validation
@@ -16,29 +15,26 @@ Job applications often require repetitive data entry across multiple platforms, 
 
 ### Multiple Implementations
 
-The project includes several implementations with different capabilities:
+The project includes two implementations with same capabilities using different amount of agents:
 
-1. **guo-job_application_autofill_agent**: The core implementation with basic autofill capabilities and evaluation metrics
-2. **human_in_the_loop**: An enhanced version that incorporates human feedback for missing fields and profile updates
-3. **yin-job_application_autofill_agent**: An alternative implementation with similar core functionality
+1. **job_application_autofill_agent-version_1**: The core implementation with basic autofill capabilities and evaluation metrics with less agents where each agent can do more more than tasks
+3. **job_application_autofill_agent_version_2**: An alternative implementation with similar core functionality and evaluation with more agents where each agent only is design to do one specific task
 
-## 2. Framework (Yin)
+## 2. Framework
 
 The project utilizes the `autogen` framework for orchestrating multi-agent workflows. This framework was selected for its powerful capabilities in creating and managing specialized AI agents that can collaborate to solve complex tasks.
 
 ### Key Advantages of AutoGen
-
+- **Group Chat Management**: Efficient orchestration of multi-agent conversations
 - **Modular Agent Architecture**: Enables the creation of specialized agents for specific tasks (scraping, mapping, autofill)
 - **Flexible Communication Patterns**: Supports complex interaction patterns between agents
 - **LLM Integration**: Seamless integration with language models like OpenAI's GPT-4
-- **Group Chat Management**: Efficient orchestration of multi-agent conversations
 - **Function Calling**: Allows agents to execute specialized functions and tools
 
 ### Technical Architecture
-
 The system is built on a multi-agent architecture where each agent specializes in a specific aspect of the form-filling process. The agents communicate through a group chat managed by the AutoGen framework, with an orchestrator agent directing the workflow.
 
-## 3. Workflow (Yin)
+## 3. Workflow
 
 The job application autofill process follows a structured workflow, with variations between implementations. Below is a detailed diagram of the workflow, including the human-in-the-loop feedback mechanism:
 
@@ -78,14 +74,6 @@ graph TD
     G -- "Autofill Instructions" --> H
     L -- "User Input" --> M
     M -- "Updated Profile" --> N
-    
-    %% Subgraph for human-in-the-loop specific components
-    subgraph "Human-in-the-Loop Components"
-        L
-        M
-        N
-        O
-    end
     
     %% Styling
     classDef agent fill:#f9f,stroke:#333,stroke-width:2px;
