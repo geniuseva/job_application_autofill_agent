@@ -6,6 +6,8 @@ import re
 import logging
 from typing import Dict, List, Any, Tuple, Optional, Union
 
+import autogen.runtime_logging
+
 # Import agent configurations and agent implementations
 from core.agent_architecture import create_agents, config_list
 from agents.scraper_agent import perform_scraping
@@ -20,6 +22,10 @@ logger = logging.getLogger(__name__)
 
 def orchestrator_workflow(url=None):
     """Main function to orchestrate the job application autofill workflow"""
+
+    # Start logging
+    logging_session_id = autogen.runtime_logging.start()
+    print("Logging session ID： " + str(logging_session_id))
 
     # Create agents
     agents = create_agents()
@@ -177,6 +183,8 @@ def orchestrator_workflow(url=None):
 
     workflow_state["autofill_result"] = autofill_result
     
+    autogen.runtime_logging.stop()
+
     return autofill_result, token_logs, time_logs, workflow_state
 
 # Helper functions

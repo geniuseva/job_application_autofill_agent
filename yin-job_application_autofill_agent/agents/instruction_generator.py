@@ -153,6 +153,6 @@ def parse_boolean(value: Any) -> bool:
     if isinstance(value, bool):
         return value
     elif isinstance(value, str):
-        return value.lower() in ('true', 'yes', '1', 'y', 't')
+        return bool(value)  # Return True for any non-empty string
     else:
         return bool(value)

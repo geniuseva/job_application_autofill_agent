@@ -1,19 +1,23 @@
 {
   "default_user": {
-    "name": "Yin Hu",
-    "first_name": "Yin",
-    "last_name": "Hu",
-    "email": "yhu76@dons.usfca.edu",
-    "phone": "978-798-8388",
-    "address": "",
-    "city": "San Francisco",
-    "state": "CA",
-    "zip": "",
-    "country": "USA",
-    "birthdate": "",
-    "linkedin": "https://linkedin.com/in/yinhu",
-    "github": "",
-    "website": "",
+    "personal": {
+      "name": "Yin Hu",
+      "first_name": "Yin",
+      "last_name": "Hu",
+      "gender": "female",
+      "pronouns": "She/her",
+      "race": "Asian (Not Hispanic or Latino)",
+      "veteran_status": "I am not a veteran",
+      "email": "yhu76@dons.usfca.edu",
+      "phone": "978-798-8388",
+      "address": "764 Spruce Street, Suite #2",
+      "city": "San Francisco",
+      "state": "CA",
+      "zip": "94118",
+      "country": "USA",
+      "linkedin": "https://linkedin.com/in/yinhu",
+      "website": "https://geniuseva.github.io"
+      },
     "education": [
       {
         "institution": "University of San Francisco",
