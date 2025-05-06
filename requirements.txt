@@ -8,7 +8,26 @@ requests
 beautifulsoup4
 
 # AutoGen framework
-autogen
+pyautogen
 
 # OpenAI API client
 openai
+
+# Phoenix tracing
+arize-phoenix
+arize-phoenix-otel
+
+# OpenTelemetry
+opentelemetry-api
+opentelemetry-sdk
+openinference-instrumentation-openai
+
+# Data analysis and visualization
+matplotlib
+scikit-learn
+pycm
+tiktoken
+ipython
+
+# Web automation
+playwright
