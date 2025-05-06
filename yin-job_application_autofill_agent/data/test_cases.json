@@ -1,48 +1,48 @@
 [
-    {
-      "url": "https://example.com/job-application1",
-      "ground_truth": {
-        "firstName": "John",
-        "lastName": "Doe",
-        "email": "john.doe@example.com",
-        "phone": "+1 (555) 123-4567",
-        "address": "123 Main St",
-        "city": "Anytown",
-        "state": "CA",
-        "zipCode": "12345",
-        "education": "Master of Science",
-        "university": "Example Graduate School",
-        "major": "Artificial Intelligence",
-        "graduationDate": "2014-05-31",
-        "company": "AI Innovations LLC",
-        "position": "Senior Developer",
-        "startDate": "2019-01-15",
-        "currentlyEmployed": "true",
-        "skills": "Python, JavaScript, Machine Learning",
-        "linkedin": "https://linkedin.com/in/johndoe",
-        "github": "https://github.com/johndoe"
-      }
-    },
-    {
-      "url": "https://example.com/job-application2",
-      "ground_truth": {
-        "name": "John Doe",
-        "email_address": "john.doe@example.com",
-        "mobile_number": "+1 (555) 123-4567",
-        "address_line1": "123 Main St",
-        "city": "Anytown",
-        "state_province": "CA",
-        "postal_code": "12345",
-        "highest_degree": "Master of Science",
-        "institution": "Example Graduate School",
-        "field_of_study": "Artificial Intelligence",
-        "completion_year": "2014",
-        "current_employer": "AI Innovations LLC",
-        "job_title": "Senior Developer",
-        "employment_start": "January 2019",
-        "currently_working": "Yes",
-        "key_skills": "Python, JavaScript, Machine Learning",
-        "portfolio_url": "https://johndoe.com"
-      }
+  {
+    "url": "https://example.com/job-application1",
+    "ground_truth": {
+      "firstName": "Yin",
+      "lastName": "Hu",
+      "email": "yhu76@dons.usfca.edu",
+      "phone": "978-798-8388",
+      "address": "",
+      "city": "San Francisco",
+      "state": "CA",
+      "zipCode": "",
+      "education": "Master of Science",
+      "university": "University of San Francisco",
+      "major": "Computer Science",
+      "graduationDate": "2025-05-31",
+      "company": "SnapLogic",
+      "position": "Software Engineering Intern",
+      "startDate": "2025-01-01",
+      "currentlyEmployed": "true",
+      "skills": "Java, JavaScript, React, Python, MySQL, AWS",
+      "linkedin": "https://linkedin.com/in/yinhu",
+      "github": ""
     }
-  ]
+  },
+  {
+    "url": "https://example.com/job-application2",
+    "ground_truth": {
+      "name": "Yin Hu",
+      "email_address": "yhu76@dons.usfca.edu",
+      "mobile_number": "978-798-8388",
+      "address_line1": "",
+      "city": "San Francisco",
+      "state_province": "CA",
+      "postal_code": "",
+      "highest_degree": "Master of Science",
+      "institution": "University of San Francisco",
+      "field_of_study": "Computer Science",
+      "completion_year": "2025",
+      "current_employer": "SnapLogic",
+      "job_title": "Software Engineering Intern",
+      "employment_start": "January 2025",
+      "currently_working": "Yes",
+      "key_skills": "Java, JavaScript, React, LLM, Spring Cloud, AWS",
+      "portfolio_url": "https://linkedin.com/in/yinhu"
+    }
+  }
+]

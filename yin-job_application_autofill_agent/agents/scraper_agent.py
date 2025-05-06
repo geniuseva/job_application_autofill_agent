@@ -136,20 +136,36 @@ def extract_field_data(input_field):
         if input_type in ['hidden', 'submit', 'button']:
             return None
     
+    # Check if the input element has the required attribute
+    is_required = input_field.has_attr('required')
+    
     field_data = {
         'type': field_type if field_type != 'input' else input_field.get('type', 'text'),
         'name': input_field.get('name', ''),
         'id': input_field.get('id', ''),
         'class': input_field.get('class', ''),
         'placeholder': input_field.get('placeholder', ''),
-        'required': input_field.has_attr('required'),
+        'required': is_required,
         'options': []
     }
     
-    # Get label text if available
-    label = find_label_for_field(input_field)
-    if label:
-        field_data['label'] = label
+    # Get label text and element if available
+    label_text, label_element = find_label_for_field(input_field)
+    if label_text:
+        field_data['label'] = label_text
+        
+        # Check if the label indicates this field is required (even if the input doesn't have the required attribute)
+        if not is_required and label_element:
+            # Check for required span with asterisk
+            required_span = label_element.find('span', class_='required')
+            if required_span:
+                field_data['required'] = True
+            # Check for asterisk in the label text
+            elif '*' in label_text:
+                field_data['required'] = True
+            # Check for "required" text in the label
+            elif 'required' in label_text.lower():
+                field_data['required'] = True
     
     # For select fields, extract options
     if field_type == 'select':
@@ -168,27 +184,32 @@ def extract_field_data(input_field):
 
 def find_label_for_field(input_field):
     """
-    Find the label text for a given input field
+    Find the label text and element for a given input field
+    
+    Returns:
+        tuple: (label_text, label_element) or (None, None) if no label found
     """
     field_id = input_field.get('id')
+    label_element = None
+    
     if field_id:
         # Try to find a label that references this field by id
-        label = input_field.find_previous('label', attrs={'for': field_id})
-        if not label:
+        label_element = input_field.find_previous('label', attrs={'for': field_id})
+        if not label_element:
             # Try to find a label that comes after the field
-            label = input_field.find_next('label', attrs={'for': field_id})
+            label_element = input_field.find_next('label', attrs={'for': field_id})
         
-        if label:
-            return label.get_text().strip()
+        if label_element:
+            return label_element.get_text().strip(), label_element
     
     # Look for a label that contains this input
     parent_label = input_field.find_parent('label')
     if parent_label:
         # Remove the input text from the label
         label_text = parent_label.get_text().strip()
-        return label_text
+        return label_text, parent_label
     
-    return None
+    return None, None
 
 def check_for_pagination(soup):
     """
