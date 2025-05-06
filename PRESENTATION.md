@@ -90,9 +90,10 @@ Demo of job_application_autofill_agent_version_1:
 [\[demo\]](https://drive.google.com/file/d/15rj9s4muDxmrJGYbJyqMJ0sx9UvMob0d/view?usp=drive_link)
 
 ## 5. Evaluation
-The project includes an evaluation module using the `Phoenix` framework, which tracks:
+The project includes an evaluation module using the `Phoenix` (an AI Observability and Evaluation Tool), which tracks:
 [\[demo with phoenix\]](https://drive.google.com/file/d/189aXgbpueAbjLMG5rcimhp1btU0NPinw/view?usp=drive_link)
-
+ - Use Phoenix's decorators appraoch (mark functions and code blocks) to trace job_application_autofill_agent_version_1
+ - Use OpenTelemetry and OpenInference instrumentation to trace job_application_autofill_agent_version_2
 
 ## 6. (Optional) Implementations Comparison &&  Detailed Agent Architecture
 
