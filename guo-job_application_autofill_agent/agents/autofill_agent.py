@@ -109,7 +109,7 @@ class FormAutofiller:
                 
                 # Add a small fixed delay for any remaining JS to initialize
                 logger.debug("Waiting 2 seconds for JS initialization")
-                time.sleep(2)
+                # time.sleep(2)
                 
                 logger.info("Page loaded successfully")
             except Exception as e:
@@ -222,7 +222,7 @@ class FormAutofiller:
                 # Add a random delay between field fills to appear more human-like
                 delay = random.uniform(0.5, 1.5)
                 logger.debug(f"  - Waiting {delay:.2f} seconds...")
-                time.sleep(delay)
+                # time.sleep(delay)
                 
             except Exception as e:
                 logger.error(f"Error filling field '{field_name}': {str(e)}")
