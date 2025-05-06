@@ -9,9 +9,9 @@ from typing import Dict, List, Any, Tuple, Optional, Union
 # Import agent configurations and agent implementations
 from core.agent_architecture import create_agents, config_list
 from agents.scraper_agent import perform_scraping
-from agents.mapper_agent import extract_form_fields, generate_autofill_instructions, perform_mapping
 from agents.db_agent import db_agent_handler
 from agents.autofill_agent import perform_autofill
+from agents.instruction_generator import generate_autofill_instructions
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, 
@@ -20,21 +20,22 @@ logger = logging.getLogger(__name__)
 
 def orchestrator_workflow(url=None):
     """Main function to orchestrate the job application autofill workflow"""
-    
+
     # Create agents
     agents = create_agents()
     
     # Extract individual agents
     user_proxy = agents["user_proxy"]
-    manager = agents["manager"]
     scraper = agents["scraper"]
-    mapper = agents["mapper"]
     db_agent = agents["db_agent"]
-    autofill_agent = agents["autofill_agent"]
     form_analyzer = agents["form_analyzer"]
     query_generator = agents["query_generator"]
     field_mapper = agents["field_mapper"]
-    
+    instruction_generator = agents["instruction_generator"]
+    autofill_agent = agents["autofill_agent"]
+    orchestrator = agents["orchestrator"]
+    manager = agents["manager"]
+
     logger.info("All agents created and initialized")
     
     # Initialize metrics collection
@@ -48,7 +49,8 @@ def orchestrator_workflow(url=None):
         "form_analysis": None,
         "db_query": None,
         "user_data": None,
-        "field_mapping": None,
+        "matched_fields": None,
+        "autofill_instructions": None,
         "autofill_result": None
     }
 
@@ -63,7 +65,7 @@ def orchestrator_workflow(url=None):
     # Start the conversation with the initial message
     initial_message = (
         f"I need to fill out a job application form. "
-        f"Here's the URL: {url or 'https://example.com/job-application'}. "
+        f"Here's the URL: {url}. "
         f"Can you help me automatically fill it out with my profile information?"
     )
     
@@ -139,16 +141,40 @@ def orchestrator_workflow(url=None):
                 except:
                     pass
         
-        # Extract field mapping (from FieldMapperAgent messages)
+        # Extract matched fields (from FieldMapperAgent messages)
         if message["role"] == "assistant" and message.get("name") == "FieldMapperAgent":
             try:
                 # Try to extract JSON from the message content
-                field_mapping = extract_json_from_message(message.get("content", ""))
-                if field_mapping:
-                    workflow_state["field_mapping"] = field_mapping
+                matched_fields = extract_json_from_message(message.get("content", ""))
+                if matched_fields:
+                    workflow_state["matched_fields"] = matched_fields
             except:
                 pass
-    
+
+        # Extract autofill instructions (from InstructionGeneratorAgent messages or function calls)
+        if message["role"] == "assistant" and message.get("name") == "InstructionGeneratorAgent":
+            try:
+                # Try to extract JSON from the message content
+                autofill_instructions = extract_json_from_message(message.get("content", ""))
+                if autofill_instructions:
+                    workflow_state["autofill_instructions"] = autofill_instructions
+            except:
+                pass
+        
+        # Also check for function calls to generate_autofill_instructions
+        if message.get("function_call") and message.get("function_call").get("name") == "generate_autofill_instructions":
+            if message.get("function_call").get("arguments") and message.get("function_call").get("output"):
+                try:
+                    # Log the arguments that were passed to the function
+                    args = json.loads(message["function_call"]["arguments"])
+                    logger.info(f"Arguments passed to generate_autofill_instructions: {args}")
+                    
+                    # Store the output
+                    workflow_state["autofill_instructions"] = json.loads(message["function_call"]["output"])
+                except Exception as e:
+                    logger.error(f"Error parsing generate_autofill_instructions: {str(e)}")
+                    pass
+
     workflow_state["autofill_result"] = autofill_result
     
     return autofill_result, token_logs, time_logs, workflow_state
@@ -249,7 +275,8 @@ def run_orchestrator(url=None):
     logger.info(f"  Form Analysis: {'Completed' if workflow_state['form_analysis'] else 'Not completed'}")
     logger.info(f"  DB Query: {'Generated' if workflow_state['db_query'] else 'Not generated'}")
     logger.info(f"  User Data: {'Retrieved' if workflow_state['user_data'] else 'Not retrieved'}")
-    logger.info(f"  Field Mapping: {'Generated' if workflow_state['field_mapping'] else 'Not generated'}")
+    logger.info(f"  Matched Fields: {'Generated' if workflow_state['matched_fields'] else 'Not generated'}")
+    logger.info(f"  Autofill Instructions: {'Generated' if workflow_state['autofill_instructions'] else 'Not generated'}")
     logger.info(f"  Autofill Result: {'Obtained' if workflow_state['autofill_result'] else 'Not obtained'}")
     
     # Log time metrics

@@ -2,11 +2,15 @@ import json
 import os
 import logging
 from datetime import datetime
+from openai import OpenAI
 
 # Set up logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Initialize OpenAI client
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 class UserDatabase:
     """Simple user database for storing and retrieving user profile information"""
@@ -103,8 +107,8 @@ class UserDatabase:
                     result[field] = current[parts[-1]]
             # Handle direct fields
             elif field in profile:
-                result[field] = profile[field]
-        
+                if profile.get(field):
+                    result[field] = profile[field]
         return result
     
     def create_default_profile(self):
@@ -228,13 +232,57 @@ def db_agent_handler(action, params=None):
         user_id = params.get("user_id", "default_user")
         fields = params.get("fields", [])
         logger.info(f"Getting fields {fields} for user ID: {user_id}")
-        result = db.get_profile_fields(user_id, fields)
-        if result:
-            logger.info(f"Successfully retrieved fields for {user_id}")
-            return json.dumps(result, indent=2)
-        else:
-            logger.warning(f"Could not retrieve fields for user ID '{user_id}'")
-            return f"Could not retrieve fields for user ID '{user_id}'"
+        
+        # Read the user profiles JSON file using the same path as UserDatabase
+        try:
+            with open(db.db_file, 'r') as f:
+                user_profiles = json.load(f)
+        except Exception as e:
+            logger.error(f"Error reading user profiles: {e}")
+            return f"Error reading user profiles: {e}"
+        
+        # Prepare the prompt for the LLM
+        prompt = f"""
+        I have a user profile JSON document and need to extract specific information for form fields.
+        
+        User Profile:
+        {json.dumps(user_profiles, indent=2)}
+        
+        Fields to extract:
+        {json.dumps(fields, indent=2)}
+        
+        For each field in the list, find the most relevant information from the user profile.
+        Return the results as a JSON object where the keys are the field names and the values are the extracted information.
+        If a field doesn't have a direct match, use the most appropriate information or leave it blank.
+        """
+        
+        try:
+            # Call the LLM with the prompt
+            logger.info("Calling LLM to extract field information")
+            response = client.chat.completions.create(
+                model="gpt-4-turbo-preview",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that extracts user information from profiles for form filling."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2
+            )
+            
+            # Extract the response content
+            result = response.choices[0].message.content
+            logger.info(f"Successfully retrieved fields using LLM for {user_id}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error calling LLM: {e}")
+            
+            # Fallback to the original method if LLM fails
+            logger.info("Falling back to original method")
+            result = db.get_profile_fields(user_id, fields)
+            if result:
+                return json.dumps(result, indent=2)
+            else:
+                return f"Could not retrieve fields for user ID '{user_id}'"
     
     elif action == "get_profile_schema":
         # Return the schema of available user data fields

@@ -1,11 +1,16 @@
 import autogen
 from autogen import Agent, UserProxyAgent, AssistantAgent, GroupChat, GroupChatManager
 import os
-from dotenv import load_dotenv
-load_dotenv()
+import logging
+from agents.instruction_generator import generate_autofill_instructions
+
+# Set up logging
+logging.basicConfig(level=logging.INFO,
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 # Import agent functions
 from agents.scraper_agent import perform_scraping
-from agents.mapper_agent import extract_form_fields, generate_autofill_instructions, perform_mapping
 from agents.db_agent import db_agent_handler
 from agents.autofill_agent import perform_autofill
 
@@ -75,7 +80,11 @@ form_analyzer_config = {
     
     For each field, determine what user information it's requesting (e.g., full name, email address, phone number).
     
-    Be precise and thorough in your analysis."""
+    Be precise and thorough in your analysis.
+    
+    After your task finished, call OrchestratorAgent using the following format and send it your result:
+    "@OrchestratorAgent: [result]"
+    """
 }
 
 # Query generator agent configuration
@@ -117,92 +126,70 @@ field_mapper_config = {
         "config_list": config_list,
         "temperature": 0.1
     },
-    "system_message": """You are a field mapping specialist. Your task is to:
-    1. Match form fields to user data
-    2. Handle different field types appropriately
-    3. Select the best options for dropdowns and checkboxes
-    4. Return detailed mapping instructions in JSON format
-    
-    For each form field:
-    - Find the most appropriate user data value
-    - For text fields, provide the exact value
-    - For select/dropdown fields, choose the best matching option
-    - For checkbox fields, determine if they should be checked
-    - For radio buttons, select the appropriate option
-    
-    Your mapping instructions should be clear and precise, ready for the autofill agent to use.
-    
-    Be intelligent about inferring relationships between differently named fields."""
+    "system_message": """You are a field mapping specialist. Your task is to match user data to form fields.
+
+For each user data, find the most appropriate for filed that can be filled by this data:
+
+IMPORTANT: Only return fields that have matching user data. Skip fields without matches.
+
+For each matched field, include:
+1. field_name: The name of the form field
+2. field_type: The type of the form field (text, select, checkbox, etc.)
+3. value: The matching user data value
+
+Note: If the value is empty, don't generate it.
+""
+{
+"field_name": "comments",
+"field_type": "textarea",
+"value": ""
+}
+""
+
+Return your matches as a JSON object with a "matched_fields" array."""
 }
 
-# Mapper agent configuration (simplified coordinator role)
-mapper_config = {
-    "name": "MapperAgent",
+# Instruction generator agent configuration
+instruction_generator_config = {
+    "name": "InstructionGeneratorAgent",
     "llm_config": {
         "config_list": config_list,
         "temperature": 0.1,
         "functions": [
             {
-                "name": "extract_key_information",
-                "description": "Extract key information from scraped form fields for DB queries",
+                "name": "generate_autofill_instructions",
+                "description": "Generate autofill instructions from matched fields data",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "scraped_data": {
+                        "matched_fields_data": {
                             "type": "object",
-                            "description": "The scraped form field data"
+                            "description": "The matched fields from the Field Mapper Agent"
                         }
                     },
-                    "required": ["scraped_data"]
-                }
-            },
-            {
-                "name": "generate_fill_instructions",
-                "description": "Generate fill instructions for the autofill agent",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "scraped_data": {
-                            "type": "object",
-                            "description": "The scraped form field data"
-                        },
-                        "user_data": {
-                            "type": "object",
-                            "description": "User data from the database"
-                        }
-                    },
-                    "required": ["scraped_data", "user_data"]
-                }
-            },
-            {
-                "name": "map_fields",
-                "description": "Legacy function to map form fields to user data fields",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "scraped_data": {
-                            "type": "object",
-                            "description": "The scraped form field data"
-                        }
-                    },
-                    "required": ["scraped_data"]
+                    "required": ["matched_fields_data"]
                 }
             }
         ]
     },
-    "system_message": """You are a coordinator for form field mapping. Your role is to:
-    
-    1. Coordinate with other specialized agents:
-       - FormAnalyzerAgent: Analyzes form structure and field types
-       - QueryGeneratorAgent: Creates database queries based on form analysis
-       - FieldMapperAgent: Maps form fields to user data
-    
-    2. Provide interfaces for the orchestrator:
-       - extract_key_information: Prepares data for database queries
-       - generate_fill_instructions: Prepares instructions for form filling
-    
-    You don't need to perform the actual analysis or mapping yourself - that's handled by the specialized agents.
-    Your job is to coordinate the process and ensure the right information flows between agents."""
+    "system_message": """You are an autofill instruction generator. Your task is to take matched form fields and generate complete autofill instructions.
+
+Your job is to:
+1. Take the matched fields from the Field Mapper Agent
+3. Generate complete autofill instructions with:
+   - field_name
+   - field_type
+   - selector (built from field name and type)
+   - fill_method (based on field type)
+   - value (from matched fields)
+
+Use the generate_autofill_instructions function with the matched_fields_data parameter to create these instructions.
+
+The output should be a JSON object with:
+- form_url: The URL of the form to fill
+- form_fields: Array of field instructions with field_type, selector, fill_method, and value
+
+This will be used directly by the AutofillAgent to fill out the form."""
 }
 
 db_config = {
@@ -263,20 +250,16 @@ autofill_config = {
         "functions": [
             {
                 "name": "fill_form",
-                "description": "Fill out a form with user data",
+                "description": "Fill out a form with structured autofill instructions",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "mapping_data": {
+                        "form_data": {
                             "type": "object",
-                            "description": "The mapping between form fields and user data"
-                        },
-                        "form_url": {
-                            "type": "string",
-                            "description": "The URL of the form to fill"
+                            "description": "The form data with field instructions"
                         }
                     },
-                    "required": ["mapping_data", "form_url"]
+                    "required": ["form_data"]
                 }
             }
         ]
@@ -284,14 +267,20 @@ autofill_config = {
     "system_message": """You automate the process of filling out forms on websites.
     Your tasks:
     1. Use Playwright to navigate to the form URL
-    2. Identify form elements on the page
-    3. Fill each field with the correct user data based on the mapping
-    4. Handle special form elements like dropdowns, checkboxes, etc.
-    5. Navigate through multi-page forms when necessary
-    6. Return the URL of the final page for user review
+    2. Fill each field using its specific fill method:
+       - Text fields: Use fill() with the provided value
+       - Select dropdowns: Use select_option() with the selected_value
+       - Checkboxes/Radio buttons: Use check() based on the checked state
+    3. Handle special form elements appropriately
+    4. Take a screenshot of the filled form
+    5. Return detailed results of the filling process
     
-    When asked to fill a form, use your fill_form function with the mapping data and form URL as parameters.
-    Be careful to handle errors gracefully."""
+    When asked to fill a form, use your fill_form function with the form_data parameter.
+    The form_data should contain:
+    - form_url: The URL of the form to fill
+    - form_fields: Array of field instructions with field_type, selector, fill_method, and value
+    
+    Be careful to handle errors gracefully and provide detailed logging."""
 }
 
 orchestrator_config = {
@@ -303,29 +292,23 @@ orchestrator_config = {
     "system_message": """You coordinate the entire job application form filling process. Your purpose is to guide the workflow through these steps:
 
 1. First, ask the ScrapeAgent to scrape form fields from the URL
-2. Then, in parallel:
-   a. Ask the FormAnalyzerAgent to analyze the form structure and field types
-   b. Ask the DatabaseAgent to get the database schema using query_database(action="get_schema")
-3. After both steps 2a and 2b are complete, ask the QueryGeneratorAgent to create a database query based on the form analysis AND the database schema
+2. Then,ask the FormAnalyzerAgent to analyze the form structure and field types
+3. After it, ask the DatabaseAgent to get the database schema using query_database(action="get_schema")
+3. After having results from steps 2 and 3, ask the QueryGeneratorAgent to create a database query based on the form analysis AND the database schema
 4. Then, ask the DatabaseAgent to retrieve the necessary user information using the query
-5. Next, ask the FieldMapperAgent to map the form fields to the user data
-6. Finally, ask the AutofillAgent to fill the form using the mapping
-7. Present the results back to the user
+5. Next, ask the FieldMapperAgent to match the form fields to the user data (it will only return fields with matches)
+6. Then, ask the InstructionGeneratorAgent to generate complete autofill instructions based on the matched fields
+7. Finally, ask the AutofillAgent to fill the form using the mapping
+8. Present the results back to the user
 
 Each agent has specific expertise:
 - ScrapeAgent: Extracts form fields from websites
 - FormAnalyzerAgent: Analyzes form structure and identifies field purposes
 - DatabaseAgent: Retrieves user profile data and schema information
 - QueryGeneratorAgent: Creates efficient database queries based on form analysis and database schema
-- FieldMapperAgent: Maps form fields to user data
-- AutofillAgent: Fills forms with the mapped data
-- MapperAgent: Coordinates between specialized agents
-
-IMPORTANT: The QueryGeneratorAgent MUST have both the form analysis from FormAnalyzerAgent AND the database schema from DatabaseAgent before it can generate an accurate query.
-
-The MapperAgent serves as a coordinator between these specialized agents and provides interfaces for you to use:
-- extract_key_information(scraped_data): Prepares data for database queries
-- generate_fill_instructions(scraped_data, user_data): Prepares instructions for form filling
+- FieldMapperAgent: Matches form fields to user data (only returns fields with matches)
+- InstructionGeneratorAgent: Generates complete autofill instructions with selectors and fill methods from matched fields
+- AutofillAgent: Fills forms with the structured instructions
 
 Always keep track of which step in the process you're on, and explicitly name which agent you're addressing in each message. If any agent encounters an error, help resolve it by suggesting appropriate actions.
 
@@ -338,22 +321,9 @@ user_proxy_config = {
     "name": "UserProxyAgent",
     "human_input_mode": "ALWAYS",  # We'll need user input for missing information
     "max_consecutive_auto_reply": 10,
-    "code_execution_config": {"last_n_messages": 3, 
-                              "work_dir": "coding",
-                              "use_docker": False},
+    "code_execution_config": {"use_docker": False},
     "llm_config": False  # No LLM for the user proxy
 }
-
-# Create the agents
-user_proxy = autogen.UserProxyAgent(**user_proxy_config)
-orchestrator = autogen.AssistantAgent(**orchestrator_config)
-scraper = autogen.AssistantAgent(**scraper_config)
-mapper = autogen.AssistantAgent(**mapper_config)
-db_agent = autogen.AssistantAgent(**db_config)
-autofill_agent = autogen.AssistantAgent(**autofill_config)
-form_analyzer = autogen.AssistantAgent(**form_analyzer_config)
-query_generator = autogen.AssistantAgent(**query_generator_config)
-field_mapper = autogen.AssistantAgent(**field_mapper_config)
 
 # Function to create and setup all agents
 def create_agents():
@@ -362,12 +332,12 @@ def create_agents():
     user_proxy = UserProxyAgent(**user_proxy_config)
     orchestrator = AssistantAgent(**orchestrator_config)
     scraper = AssistantAgent(**scraper_config)
-    mapper = AssistantAgent(**mapper_config)
     db_agent = AssistantAgent(**db_config)
     autofill_agent = AssistantAgent(**autofill_config)
     form_analyzer = AssistantAgent(**form_analyzer_config)
     query_generator = AssistantAgent(**query_generator_config)
     field_mapper = AssistantAgent(**field_mapper_config)
+    instruction_generator = AssistantAgent(**instruction_generator_config)
     
     # Register functions with their respective agents
     scraper.register_function(
@@ -376,11 +346,9 @@ def create_agents():
         }
     )
     
-    mapper.register_function(
+    instruction_generator.register_function(
         function_map={
-            "extract_key_information": extract_form_fields,
-            "generate_fill_instructions": generate_autofill_instructions,
-            "map_fields": perform_mapping  # Legacy function for backward compatibility
+            "generate_autofill_instructions": generate_autofill_instructions
         }
     )
     
@@ -409,25 +377,25 @@ def create_agents():
     
     # Define the group chat
     groupchat = GroupChat(
-        agents=[user_proxy, orchestrator, scraper, mapper, db_agent, autofill_agent,
-                form_analyzer, query_generator, field_mapper],
+        agents=[user_proxy, orchestrator, scraper, db_agent, autofill_agent,
+                form_analyzer, query_generator, field_mapper, instruction_generator, autofill_agent],
         messages=[],
-        max_round=50
+        max_round=50,
     )
     
     # Create the group chat manager
     manager = GroupChatManager(groupchat=groupchat, llm_config={"config_list": config_list})
-    
+
     return {
         "user_proxy": user_proxy,
         "orchestrator": orchestrator,
         "scraper": scraper,
-        "mapper": mapper,
         "db_agent": db_agent,
-        "autofill_agent": autofill_agent,
         "form_analyzer": form_analyzer,
         "query_generator": query_generator,
         "field_mapper": field_mapper,
+        "instruction_generator": instruction_generator,
+        "autofill_agent": autofill_agent,
         "groupchat": groupchat,
         "manager": manager
     }
