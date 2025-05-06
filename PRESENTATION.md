@@ -99,11 +99,12 @@ graph TD
 
 ## 4. Demo (Guo)
 Demo of guo-job_application_autofill_agent:
-[video uploaded]
+[\[demo\]](https://drive.google.com/file/d/15rj9s4muDxmrJGYbJyqMJ0sx9UvMob0d/view?usp=drive_link)
 
 ## 5. Evaluation (Guo)
 The project includes an evaluation module using the `Phoenix` framework, which tracks:
-[video uploaded]
+[\[demo with phoenix\]](https://drive.google.com/file/d/189aXgbpueAbjLMG5rcimhp1btU0NPinw/view?usp=drive_link)
+
 
 ## 6. (Optional) Implementations Comparison &&  Detailed Agent Architecture (Yin)
 
@@ -173,31 +174,15 @@ The system consists of several specialized agents, each responsible for a specif
 ## 7. Challenges & Discussions (Guo)
 
 1. LLM-Based Field Mapping vs. Hardcoded Patterns
-The transition from hardcoded field mapping patterns to LLM-based analysis represents a fundamental shift in approach. Rather than relying on predefined regex patterns that require maintenance and updates, the system now leverages specialized agents (FormAnalyzerAgent, QueryGeneratorAgent) that can intelligently analyze form structures and adapt to new field types without code changes. This demonstrates how LLMs can replace brittle rule-based systems with more flexible, adaptive solutions that can handle edge cases and novel inputs more effectively.
+LLMs can replace brittle rule-based systems with more flexible, adaptive solutions that can handle edge cases and novel inputs more effectively.
 
 2. Parallel Processing and Information Dependencies in Multi-Agent Systems
-The workflow redesign highlighted the importance of understanding information dependencies between agents. By processing the form analysis and database schema retrieval in parallel, then ensuring the QueryGeneratorAgent has access to both before generating queries, we created a more efficient workflow while maintaining data integrity. This pattern of identifying which operations can run concurrently versus which have strict dependencies is crucial for designing effective multi-agent systems that balance speed with accuracy.
+This pattern of identifying which operations can run concurrently versus which have strict dependencies is crucial for designing effective multi-agent systems that balance speed with accuracy.
 
-3. Database Schema Awareness for Accurate Query Generation
-A critical insight was recognizing that the QueryGeneratorAgent needed explicit access to the actual database schema to generate valid queries. Without this knowledge, the agent was generating queries with field names that didn't match the database structure (e.g., requesting "full_name" when the database stored "personal.first_name" and "personal.last_name"). This highlights how important it is for AI systems to have accurate models of the data structures they interact with, especially in systems that bridge between different data representations.
+3. Database Schema Awareness
+It is important for AI systems to have accurate models of the data structures they interact with, especially in systems that bridge between different data representations.
 
-4. Human-AI Collaboration Balance: 
-The human-in-the-loop implementation reveals a critical insight about form automation - pure automation often fails with complex or unusual form fields. The architectural decision to incorporate human feedback at strategic points (specifically after field mapping and form filling attempts) creates a system that combines AI efficiency with human judgment. This hybrid approach achieves higher completion rates while continuously improving the system through profile updates.
+4. Multi-Agent Architecture Benefits
+This architecture allows for independent optimization of components (e.g., improving the scraper without affecting the autofill logic) and enables different implementations to reuse components while modifying others to suit specific needs.
 
-5. Field Mapping Complexity: 
-The semantic matching between user profile data and diverse form fields emerges as the core technical challenge. Forms use inconsistent naming conventions, field types, and structures across different websites. The project's approach of combining direct matching, partial matching, and flattening nested user data structures demonstrates how complex this seemingly straightforward problem becomes in real-world applications.
 
-6. Multi-Agent Architecture Benefits: 
-The decision to implement specialized agents rather than a monolithic solution provides significant advantages in system evolution. Each agent focuses on a specific task (scraping, mapping, filling) with clear interfaces between them. This architecture allows for independent optimization of components (e.g., improving the scraper without affecting the autofill logic) and enables different implementations to reuse components while modifying others to suit specific needs.
-
-Data Structure Consistency Between Agents
-
-The most challenging aspect of the multi-agent system was ensuring consistent data structures between agents. When one agent (FieldMapperAgent) produced output with "matched_fields" but another agent (InstructionGeneratorAgent) expected "form_fields", it caused cascading failures. This highlights the critical importance of establishing strict contracts between agents in a pipeline and implementing robust validation. Using Pydantic models for validation proved essential, but explicit instructions in each agent's system message was equally important to prevent data transformation issues.
-
-Human-in-the-Loop Workflow Design
-
-The implementation revealed that human-in-the-loop systems require careful orchestration of when and how to involve human input. The project demonstrated two distinct approaches: using a dedicated FeedbackAgent versus having the UserProxyAgent directly handle missing information. The simpler direct approach proved more effective, showing that sometimes reducing intermediary agents can lead to more reliable systems. This suggests that human-in-the-loop systems should be designed with minimal handoffs when human input is required.
-
-Explicit vs. Implicit Agent Instructions
-
-The project demonstrated that LLM-based agents require extremely explicit instructions about data formats and workflows. Simply describing the expected behavior wasn't sufficient - we needed to include examples, warnings about what NOT to do, and critical formatting requirements. This suggests that when designing multi-agent systems, developers should anticipate that agents may "creatively misinterpret" instructions and proactively provide guardrails through explicit examples and counter-examples in system messages.
