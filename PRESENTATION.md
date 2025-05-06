@@ -1,6 +1,6 @@
 # Job Application Autofill Agent
 
-## 1. Introduction (Yin)
+## 1. Introduction
 
 The Job Application Autofill Agent is an multi-agent system designed to automate the job application process of filling out online application forms. The system will take users input about filling a job application form(url) and then efficiently handle the following tasks: receiving application links, scraping form data from the web, identifying required fields, query user database to get user data, mapping form fields to user data, auto filling forms, and lastly sending filled url back to user for review and submission. We willl also evaluate this multi-agent system based on 3 scopes: accuracy, tokens, and time using Phoenix.
 
@@ -85,25 +85,22 @@ graph TD
     class B,J io;
 ```
 
-## 4. Demo (Guo)
-Demo of guo-job_application_autofill_agent:
+## 4. Demo
+Demo of job_application_autofill_agent_version_1:
 [\[demo\]](https://drive.google.com/file/d/15rj9s4muDxmrJGYbJyqMJ0sx9UvMob0d/view?usp=drive_link)
 
-## 5. Evaluation (Guo)
+## 5. Evaluation
 The project includes an evaluation module using the `Phoenix` framework, which tracks:
 [\[demo with phoenix\]](https://drive.google.com/file/d/189aXgbpueAbjLMG5rcimhp1btU0NPinw/view?usp=drive_link)
 
 
-## 6. (Optional) Implementations Comparison &&  Detailed Agent Architecture (Yin)
+## 6. (Optional) Implementations Comparison &&  Detailed Agent Architecture
 
-| Feature | guo-job_application_autofill_agent | human_in_the_loop | yin-job_application_autofill_agent |
+| Feature | job_application_autofill_agent_version_1(less_agent) | job_application_autofill_agent_version_2(more_agents) |
 |---------|-------------------------------------|-------------------|-----------------------------------|
-| **Core Functionality** | Basic form scraping and autofill | Enhanced with human feedback | Similar to core implementation |
-| **Human Interaction** | Limited | Extensive (asks for missing info) | Limited |
-| **Profile Updates** | No | Yes (updates user profile with new data) | No |
-| **Error Handling** | Basic | Advanced with recovery options | Basic |
-| **Evaluation** | Phoenix tracing | Basic metrics | Similar to core |
-| **Browser Control** | Playwright | Playwright with enhanced human-like behavior | Playwright |
+| **Core Functionality** | Basic form scraping and autofill | Same |
+| **Evaluation** | Phoenix tracing | Same |
+| **Browser Control** | Playwright | Same |
 
 
 The system consists of several specialized agents, each responsible for a specific part of the workflow:
