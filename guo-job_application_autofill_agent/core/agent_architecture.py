@@ -302,7 +302,7 @@ def create_agents():
     
     # Define the group chat
     groupchat = GroupChat(
-        agents=[user_proxy, orchestrator, scraper,db_agent, autofill_agent, field_mapper, instruction_generator],
+        agents=[user_proxy, orchestrator, scraper, db_agent, autofill_agent, field_mapper, instruction_generator],
         messages=[],
         max_round=50
     )
